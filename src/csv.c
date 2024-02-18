@@ -513,3 +513,8 @@ int csv_getnumfields(char* row, CsvHandle handle)
     }
     return rowsize + 1;
 }
+
+char csv_getdelim(CsvHandle handle)
+{
+    return handle->delim;
+}
