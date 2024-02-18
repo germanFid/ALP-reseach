@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <math.h>           
 #include "csv.h"
 #include "ALPM.h"
 
@@ -51,7 +51,7 @@ double F10[] = {    1.0,
 int main()
 {
     /* Open .csv file and create handle */
-    CsvHandle handle = csv_fopend(L"test.csv");
+    CsvHandle handle = csv_fopend("../src/test.csv");
     if (!handle)
     {
         printf("CsvHandle failed to create\n");
@@ -75,7 +75,7 @@ int main()
     }
 
     /* Calculate powers of 10 which will be used in ALP algorithm */
-    POW10 POW10 = ALPM_calculatepow(row, num_fields, COMPRESS_EVERY_VALUE);
+    POW10 POW10 = ALPM_calculatepow(row, num_fields, COMPRESS_EVERY_VALUE, NULL);
     printf("calculated powers of 10: %d, %d\n\n", POW10.neg, POW10.pos);
 
     /*  C = INPUT * 10^p * 10^-n
