@@ -11,19 +11,18 @@ extern "C"
 #define BALANCED 101
 #define BEST_ANALYZED 102
 #define FIXED 103
+#define MAX_ERR 0.00000000000001
 
 typedef struct _decimals DECIMALS;
 
 typedef struct _pow POW10;
 struct _pow
 {
-    unsigned short neg;
-    unsigned short pos;
+    char neg;
+    char pos;
 };
 
 POW10 ALPM_calculatepow(char* str_r, size_t elements, int options, double* input_data);
-
-
 
 #ifdef __cplusplus
 };

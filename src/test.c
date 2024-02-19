@@ -3,6 +3,7 @@
 #include <math.h>           
 #include "csv.h"
 #include "ALPM.h"
+#include "binrw.h"
 
 double i_F10[] = {  1.0, 
                     0.1, 
@@ -51,7 +52,7 @@ double F10[] = {    1.0,
 int main()
 {
     /* Open .csv file and create handle */
-    CsvHandle handle = csv_fopend("../src/test.csv");
+    CsvHandle handle = csv_fopend("test.csv");
     if (!handle)
     {
         printf("CsvHandle failed to create\n");
@@ -66,22 +67,24 @@ int main()
     double* in_array = (double*)malloc(sizeof(double) * num_fields);
     double* out_array = (double*)malloc(sizeof(double) * num_fields);
     long long* compressed_int = (long long*)malloc(sizeof(long long) * num_fields);
-    if (!in_array || !out_array || !compressed_int)
+    int* error = (int*)malloc(sizeof(int) * num_fields);
+    if (!in_array || !out_array || !compressed_int || !error)
     {
         free(in_array);
         free(out_array);
         free(compressed_int);
+        free(error);
         exit(EXIT_FAILURE);
     }
 
     /* Calculate powers of 10 which will be used in ALP algorithm */
-    POW10 POW10 = ALPM_calculatepow(row, num_fields, COMPRESS_EVERY_VALUE, NULL);
+    POW10 POW10 = ALPM_calculatepow(row, num_fields, BALANCED, NULL);
     printf("calculated powers of 10: %d, %d\n\n", POW10.neg, POW10.pos);
 
     /*  C = INPUT * 10^p * 10^-n
         DEC = C * 10^n * 10^-p
 
-        (p = _pow->pos, n = _pow-neg) */
+        (p = POW10->pos, n = POW10->neg) */
 
     for (int i = 0; i < num_fields; i++)
     {
@@ -94,8 +97,34 @@ int main()
         printf("input =              %.20f \n", in_array[i]);
         printf("compressed integer = %Ii \n", compressed_int[i]);
         printf("decompressed value = %.20f \n", out_array[i]);
+
+        if (fabs(out_array[i] - in_array[i]) > MAX_ERR)
+            error[i] = 1;
+        else
+            error[i] = 0;
+        printf("error? %d \n", error[i]);
         printf("=====================================\n");
     }
+
+    /* Test binary writing
+        1. Initialize block parameters 
+            { bytes for element, BLOCK LENGTH, ERROR CODE }
+        2. Create BinRWHandle
+        3. Write block to binary file
+
+        @ BLOCK:
+        POW10->neg....POW10->pos....BLOCK LENGTH...DATA............................................REPEAT
+        |- 1 byte -|..|- 1 byte -|..|- 4 bytes -|..|(sizeof(element in DATA) + 1) * BLOCK LENGTH|..REPEAT
+
+        @ FINALLY:
+        ERROR VALUES..........EOF
+        |sizeof(double) * N|..EOF
+    */
+
+    BinBlocks blocks = init_blocks(sizeof(int), num_fields, 0b1);
+    BinRWHandle bin_handle = bin_fopenf("out.bin", BINARY_WRITE, &blocks);
+    bin_writeb(bin_handle, POW10.neg, POW10.pos, compressed_int, error, in_array);
+    bin_close(bin_handle);
 
     /* Close handle, free memory */
     csv_close(handle);

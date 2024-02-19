@@ -171,9 +171,9 @@ CsvHandle csv_fopenf(const char* filename, char delim, char quote, char escape)
 
     GetSystemInfo(&info);
     handle->blockSize = GET_PAGE_ALIGNED(BUFFER_WIDTH_APROX, info.dwPageSize);
-    handle->fh = CreateFile(filename, 
+    handle->fh = CreateFile(filename,
                             GENERIC_READ, 
-                            0, 
+                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                             0, 
                             OPEN_EXISTING, 
                             FILE_ATTRIBUTE_NORMAL, 
