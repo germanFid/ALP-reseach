@@ -1,4 +1,5 @@
 #include "binrw.h"
+#include "ALPM.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -101,4 +102,46 @@ void bin_writeb(BinRWHandle handle, char neg, char pos, void* ints, void* error,
 			}
 		}
 	}
+}
+
+void bin_readb(BinRWHandle handle, char* neg, char* pos, void* ints, void* error, double* orig_data)
+{
+	/* No-error code = 0 */
+	char err = 0b0;
+	unsigned int count_err = 0;
+
+	/* Read 2 bytes of powers of 10*/
+	fread(neg, 1, 1, handle->fp);
+	fread(pos, 1, 1, handle->fp);
+
+	/* Read 4 bytes of block length */
+	fread(&handle->blocks.BLOCK_LENGTH, 4, 1, handle->fp);
+
+	size_t read_chunks = fread(&err, 1, 1, handle->fp);
+	size_t read_el = 0;
+	while (read_chunks != 0)
+	{
+		if (err)
+		{
+			count_err++;
+		}
+
+		else
+		{
+			/* Process element */
+						fread(&err, 1, 1, handle->fp);
+			read_chunks = fread(&((int*)ints)[read_el],
+			   handle->blocks.SZ_ELEMENT, 1, handle->fp);
+
+			int first_byte = (((int*)ints)[read_el] >> 0) & 0xff;
+
+			if (first_byte == 0)
+			{
+				break; // or what?
+			}
+
+			read_el++;
+		}
+	}
+	
 }
