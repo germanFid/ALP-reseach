@@ -19,7 +19,7 @@ extern "C"
 typedef struct _csvhandle *CsvHandle;
 
 /*
- * openes csv file
+ * opens csv file
  * @filename: pathname of the file
  * @return: csv handle
  * csv_close() should be called to release resources
@@ -47,11 +47,18 @@ char* csv_readrow(CsvHandle handle);
 char* csv_readfield(char* row, CsvHandle handle);
 
 /*
- * get numbers of fields in csv file / row
+ * get number of fields in csv file / row
  * @row: csv row (you can use csv_readrow() to parse next line)
  * @handle: csv handle
  */
 int csv_getnumfields(char* row, CsvHandle handle);
+
+
+/*
+ * get delimiter
+ * @handle: csv handle
+ */
+char csv_getdelim(CsvHandle handle);
 
 #ifdef __cplusplus
 };
