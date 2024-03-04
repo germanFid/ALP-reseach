@@ -5,6 +5,45 @@
 #include "ALPM.h"
 #include "binrw.h"
 
+char*** csv_readtable(CsvHandle handle, int num_rows, int* read_rows, int* read_fields)
+{
+    char* current_row = csv_readrow(handle);
+    int num_fields = csv_getnumfields(current_row, handle);
+
+    *read_fields = num_fields;
+    *read_rows = num_rows;
+    
+    char*** arr = (char***) malloc(num_rows * num_fields * sizeof(char*));
+    for (int i = 0; i < num_rows; i++)
+    {
+        arr[i] = (char**) malloc(num_fields * sizeof(char*));
+    }
+
+    for(int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < num_fields; j++)
+        {
+            arr[i][j] = csv_readfield(current_row, handle);
+        }
+        
+        current_row = csv_readrow(handle);
+        
+        /*
+            - What's yo name?
+            - Deez
+            - Deez what?
+            - Deez n**s
+        */
+        if (!current_row)
+        {
+            *read_rows = i + 1;
+            return arr;
+        }
+    }
+
+    return arr;
+}
+
 double i_F10[] = {  1.0, 
                     0.1, 
                     0.01, 
