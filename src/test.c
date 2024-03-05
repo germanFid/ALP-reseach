@@ -1,9 +1,65 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>           
+#include <math.h>
+#include "string.h"      
 #include "csv.h"
 #include "ALPM.h"
 #include "binrw.h"
+
+char*** csv_readtable(CsvHandle handle, int num_rows, int* read_rows, int* read_fields)
+{
+    char* current_row = csv_readrow(handle);
+    int num_fields = csv_getnumfields(current_row, handle);
+
+    *read_fields = num_fields;
+    *read_rows = num_rows;
+    
+    char*** arr = (char***) malloc(num_rows * num_fields * sizeof(char*));
+    for (int i = 0; i < num_rows; i++)
+    {
+        arr[i] = (char**) malloc(num_fields * sizeof(char*));
+    }
+
+    char* tmp;
+
+    for(int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < num_fields; j++)
+        {
+            tmp = csv_readfield(current_row, handle);
+            char* copy = malloc(strlen(tmp) + 1);
+            strcpy(copy, tmp);
+            arr[i][j] = copy;
+        }
+
+        current_row = csv_readrow(handle);
+        
+        if (!current_row)
+        {
+            *read_rows = i + 1;
+            return arr;
+        }
+    }
+
+    return arr;
+}
+
+void csv_table_free(char*** table, int num_rows, int num_fiels)
+{
+    for (int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < num_fiels; j++)
+        {
+            char* test = table[i][j];
+            free(table[i][j]);
+        }
+    }
+    
+    for (int i = 0; i < num_rows; i++)
+    {
+        free(table[i]);
+    }
+}
 
 double i_F10[] = {  1.0, 
                     0.1, 
