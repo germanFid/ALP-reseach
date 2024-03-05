@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>           
+#include <math.h>
+#include "string.h"      
 #include "csv.h"
 #include "ALPM.h"
 #include "binrw.h"
@@ -19,21 +20,20 @@ char*** csv_readtable(CsvHandle handle, int num_rows, int* read_rows, int* read_
         arr[i] = (char**) malloc(num_fields * sizeof(char*));
     }
 
+    char* tmp;
+
     for(int i = 0; i < num_rows; i++)
     {
         for (int j = 0; j < num_fields; j++)
         {
-            arr[i][j] = csv_readfield(current_row, handle);
+            tmp = csv_readfield(current_row, handle);
+            char* copy = malloc(strlen(tmp) + 1);
+            strcpy(copy, tmp);
+            arr[i][j] = copy;
         }
-        
+
         current_row = csv_readrow(handle);
         
-        /*
-            - What's yo name?
-            - Deez
-            - Deez what?
-            - Deez n**s
-        */
         if (!current_row)
         {
             *read_rows = i + 1;
