@@ -44,6 +44,23 @@ char*** csv_readtable(CsvHandle handle, int num_rows, int* read_rows, int* read_
     return arr;
 }
 
+void csv_table_free(char*** table, int num_rows, int num_fiels)
+{
+    for (int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < num_fiels; j++)
+        {
+            char* test = table[i][j];
+            free(table[i][j]);
+        }
+    }
+    
+    for (int i = 0; i < num_rows; i++)
+    {
+        free(table[i]);
+    }
+}
+
 double i_F10[] = {  1.0, 
                     0.1, 
                     0.01, 
