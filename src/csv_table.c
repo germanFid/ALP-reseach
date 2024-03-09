@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "string.h" 
 #include "csv_table.h"
 
 void csv_table_init(CsvTable* table, CsvHandle handle, int num_rows)
@@ -10,15 +11,15 @@ void csv_table_init(CsvTable* table, CsvHandle handle, int num_rows)
     table->num_fields = num_fields;
     table->num_rows = num_rows;
     
-    table->table = (char***) malloc(num_rows * num_fields * sizeof(char*));
+    table->table = (char***)malloc(num_rows * sizeof(char*));
     for (int i = 0; i < num_rows; i++)
     {
-        table->table[i] = (char**) malloc(num_fields * sizeof(char*));
+        table->table[i] = (char**)malloc(num_fields * sizeof(char*));
     }
 
     char* tmp;
 
-    for(int i = 0; i < num_rows; i++)
+    for (int i = 0; i < num_rows; i++)
     {
         for (int j = 0; j < num_fields; j++)
         {
