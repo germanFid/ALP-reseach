@@ -5,7 +5,7 @@
 #include "csv.h"
 #include "csv_table.h"
 #include "ALPM.h"
-#include "binrw.h"
+#include "binrw_new.h"
 
 int main()
 {
@@ -28,13 +28,13 @@ int main()
 
     /* Allocate memory for 2d arrays to store compressed integers and errors */
     int** compressed_int = (int**)malloc(num_rows * sizeof(int*));
-    char** error = (char**)malloc(num_rows * sizeof(char*));
-    char** signs = (char**)malloc(num_rows * sizeof(char*));
+    int** error = (int**)malloc(num_rows * sizeof(int*));
+    int** signs = (int**)malloc(num_rows * sizeof(int*));
     for (int i = 0; i < num_rows; i++)
     {
-        error[i] = (char*)malloc(num_fields * sizeof(char));
-        compressed_int[i] = (char*)malloc(num_fields * sizeof(char));
-        signs[i] = (char*)malloc(num_fields * sizeof(char));
+        error[i] = (int*)malloc(num_fields * sizeof(int));
+        compressed_int[i] = (int*)malloc(num_fields * sizeof(int));
+        signs[i] = (int*)malloc(num_fields * sizeof(int));
     }
 
     /* Calculate powers of 10 which will be used in ALP algorithm */
@@ -48,7 +48,7 @@ int main()
     for (int i = 0; i < num_fields; i++)
     {
         POW10_col[i] = ALPM_calculatepow(&table, BALANCED, ONE_COLUMN, i + 1);
-        ALPM_columntoi2_ce_se(&table, &POW10_col[i], compressed_int, error, signs, i + 1); 
+        ALPM_columntoi2_ce_se(&table, &POW10_col[i], compressed_int, error, i + 1); 
     }
     // */
 
@@ -70,31 +70,16 @@ int main()
         }
         printf("\n");
     }
-    printf("\nSIGNS:\n");
-    for (int i = 0; i < num_rows; i++)
-    {
-        for (int j = 0; j < num_fields; j++)
-        {
-            printf("%d ", signs[i][j]);
-        }
-        printf("\n");
-    }
+
     printf("\nCALCULATED DELTAS:\n");
 
-    //int delta = delta_encode_ce(&table, compressed_int, error, CONTINUOUS, NULL, 10);
-
-    // 4 bytes - table.num_rows
-    // 4 bytes - delta[i]
-    // 1 + 1 bytes - POW10_col[i]
-    // 1 byte - bitshift
-    // bitstream
-
+    //int delta = delta_encode_ce(&table, compressed_int, error, signs, CONTINUOUS, NULL, 10);
 
     // /*
     int* deltas = (int*)malloc(sizeof(int) * num_fields);
     for (int i = 0; i < num_fields; i++)
     {
-        deltas[i] = delta_encode_ce(&table, compressed_int, error, ONE_COLUMN, i + 1, 10);
+        deltas[i] = delta_encode_ce(&table, compressed_int, error, signs, ONE_COLUMN, i + 1, 10);
         printf("%d ", deltas[i]);
     }
     // */
@@ -107,6 +92,18 @@ int main()
         }
         printf("\n");
     }
+    printf("\nSIGNS:\n");
+    for (int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < num_fields; j++)
+        {
+            printf("%d ", signs[i][j]);
+        }
+        printf("\n");
+    }
+
+    /* Write to file */
+    write_bin(compressed_int, num_fields - 1, num_rows, 1, deltas, signs, error, "output.bin");
 
     /* Close handles, free memory */
     csv_close(handle);

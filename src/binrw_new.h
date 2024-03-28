@@ -1,7 +1,7 @@
 #include "csv_table.h"
 
-int BUF_ELEM_SZ = 32;
-int DATA_ELEM_SZ = 32;
+static int BUF_ELEM_SZ = 32;
+static int DATA_ELEM_SZ = 32;
 
 struct Prefix
 {
@@ -14,7 +14,6 @@ union PrefixWrapper
     struct Prefix _prefix;
     unsigned char _val;
 };
-
 
 struct Core
 {
@@ -35,4 +34,4 @@ struct BinData
 };
 
 // int write_bin(struct BinData*, char*);
-int write_bin(struct BinData* data, char* filename, int n_rows, int n_cols);
+int write_bin(int** data, int data_cols, int data_rows, int compression_type, int* deltas, int** signs, int** errors, char* filename);

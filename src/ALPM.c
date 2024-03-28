@@ -188,7 +188,7 @@ POW10 ALPM_calculatepow(CsvTable* table, int option1, int option2, int column)
     lrint() return value that might be 0 in case of an overflow.
     Next check of compression is enough to catch it. */
 
-void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int** sign_array, int column)
+void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int column)
 {
     double current_value = 0.0;
     double decompressed_value = 0.0;
@@ -207,7 +207,7 @@ void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** e
     }
 }
 
-void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int** sign_array)
+void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array)
 {
     double current_value = 0.0;
     double decompressed_value = 0.0;
@@ -258,15 +258,27 @@ void ALPM_tabletoi2(CsvTable* table, POW10* pow, void** out_array)
     Using all values, not only abs.
 */
 
-static void delta_chginput(CsvTable* table, int** input, unsigned long delta, int column)
+static void delta_chginput(CsvTable* table, int** input, int** signs, unsigned long delta, int column)
 {
+    int current_value = 0;
+
     if (column == NULL)
     {
         for (size_t i = 0; i < table->num_rows; i++)
         {
             for (size_t j = 0; j < table->num_fields; j++)
             {
-                input[i][j] = input[i][j] - delta;
+                current_value = input[i][j] - delta;
+                if (current_value < 0)
+                {
+                    input[i][j] = abs(current_value);
+                    signs[i][j] = 1;
+                }
+                else
+                {
+                    input[i][j] = current_value;
+                    signs[i][j] = 0;
+                }
             }
         }
     }
@@ -274,12 +286,22 @@ static void delta_chginput(CsvTable* table, int** input, unsigned long delta, in
     {
         for (size_t i = 0; i < table->num_rows; i++)
         {
-            input[i][column - 1] = input[i][column - 1] - delta;
+            current_value = input[i][column - 1] - delta;
+            if ((current_value) < 0)
+            {
+                input[i][column - 1] = abs(current_value);
+                signs[i][column - 1] = 1;
+            }
+            else
+            {
+                input[i][column - 1] = current_value;
+                signs[i][column - 1] = 0;
+            }
         }
     }
 }
 
-int delta_encode_ce(CsvTable* table, int** input, int** err, int options, int column, int of_r)
+int delta_encode_ce(CsvTable* table, int** input, int** err, int** signs, int options, int column, int of_r)
 {
     unsigned long long count = 0;
     unsigned long mid_mean = 0;
@@ -313,7 +335,7 @@ int delta_encode_ce(CsvTable* table, int** input, int** err, int options, int co
         else
             delta = mid_mean;
 
-        delta_chginput(table, input, delta, NULL);
+        delta_chginput(table, input, signs, delta, NULL);
         return delta;
     }
     case ONE_COLUMN:
@@ -338,14 +360,14 @@ int delta_encode_ce(CsvTable* table, int** input, int** err, int options, int co
         else
             delta = mid_mean;
 
-        delta_chginput(table, input, delta, column);
+        delta_chginput(table, input, signs, delta, column);
         return delta;
     }
     }
 }
 
 /* Probably working worse, need comparison with previous fuction */
-int delta_encode(CsvTable* table, int** input, int options, int column, int of_r)
+int delta_encode(CsvTable* table, int** input, int** signs, int options, int column, int of_r)
 {
     unsigned long long count = 0;
     unsigned long mid_mean = 0;
@@ -375,7 +397,7 @@ int delta_encode(CsvTable* table, int** input, int options, int column, int of_r
         else
             delta = mid_mean;       
 
-        delta_chginput(table, input, delta, NULL);
+        delta_chginput(table, input, signs, delta, NULL);
         return delta;
     }
     case ONE_COLUMN:
@@ -396,7 +418,7 @@ int delta_encode(CsvTable* table, int** input, int options, int column, int of_r
         else
             delta = mid_mean;
 
-        delta_chginput(table, input, delta, column);
+        delta_chginput(table, input, signs, delta, column);
         return delta;
     }
     }

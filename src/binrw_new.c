@@ -3,7 +3,7 @@
 #include <math.h>
 #include "binrw_new.h"
 
-int calculate_shift(unsigned int *data, int num_elements) 
+static int calculate_shift(unsigned int* data, int num_elements) 
 {
     int maxShift = sizeof(unsigned int) * 8; 
 
@@ -27,7 +27,7 @@ int calculate_shift(unsigned int *data, int num_elements)
     return maxShift;
 }
 
-int shift_and_compress(unsigned int* buf, int buf_size, int* data, int data_size, int shift)
+static int shift_and_compress(unsigned int* buf, int buf_size, int* data, int data_size, int shift)
 {
     int shifted_size = BUF_ELEM_SZ - shift;
     printf("shifted_size: %d\n", shifted_size);
@@ -85,7 +85,7 @@ int shift_and_compress(unsigned int* buf, int buf_size, int* data, int data_size
         {
             buf[i] = buf[i] << buf_left;
             unsigned int new_val = data[data_i] & (0xFFFFFFFF >> (DATA_ELEM_SZ - buf_left));
-//            printf("new: %u\n", new_val);
+            // printf("new: %u\n", new_val);
             buf[i] |= new_val;
 
             bit_remains = shifted_size - buf_left;
@@ -116,7 +116,7 @@ int write_bin(int** data, int data_cols, int data_rows, int compression_type, in
             
             shift_and_compress(buf, data_rows, data[i], data_rows, shift);
 
-            // write elemets
+            // write elements
             for (int j = 0; j < n_elements; j++)
             {
                 fwrite(&buf[j], sizeof(int), 1, file);
