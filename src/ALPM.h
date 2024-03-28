@@ -31,8 +31,8 @@ POW10 ALPM_calculatepow(CsvTable* table, int option1, int option2, int column);
 
 void ALPM_columntoi2(CsvTable* table, POW10* pow, void** out_array, int column);
 void ALPM_tabletoi2(CsvTable* table, POW10* pow, void** out_array);
-void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int column);
-void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array);
+void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, char** err_array, char** sign_array, int column);
+void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, char** err_array, char** sign_array);
 
 int delta_encode(CsvTable* table, int** input, int options, int column, int of_r);
 int delta_encode_ce(CsvTable* table, int** input, int** err, int options, int column, int of_r);

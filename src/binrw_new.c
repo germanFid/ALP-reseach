@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "binrw_new.h"
 
 int calculate_shift(unsigned int *data, int num_elements) 
@@ -26,100 +27,113 @@ int calculate_shift(unsigned int *data, int num_elements)
     return maxShift;
 }
 
-void shift_and_write(unsigned int *data, int num_elements, int shift_amount, FILE *file) 
+int shift_and_compress(unsigned int* buf, int buf_size, int* data, int data_size, int shift)
 {
-    unsigned char buffer = 0;
-    int bitsWritten = 0;
+    int shifted_size = BUF_ELEM_SZ - shift;
+    printf("shifted_size: %d\n", shifted_size);
 
-    printf("shift = %d\n", shift_amount);
-
-    for (int i = 0; i < num_elements; i++) 
+    if(data_size * shifted_size > buf_size * BUF_ELEM_SZ)
     {
-        printf("-> %d\n", data[i]);
-        unsigned int shiftedValue = data[i] >> shift_amount;
+        return -1;
+    }
 
-        buffer |= (shiftedValue & 0xFF);
-        bitsWritten += 8 - shift_amount;
+    int buf_left = BUF_ELEM_SZ;
+    int bit_remains = 0; // number of remaining bits to write before blocks
 
-        if (bitsWritten >= 8) 
+    int data_i = 0; // current index of data array
+    for (int i = 0; i < buf_size; i++) // buf_size; i++)
+    {
+        printf("\n\n\t=== ITERATION %d ===\n", i);
+        if (bit_remains)
         {
-            fwrite(&buffer, 1, 1, file);
-            buffer = 0;
-            bitsWritten = 0;
-        } 
-        
-        else 
-        {
-            buffer <<= shift_amount;
+            buf[i] |= ((0xFFFFFFFF << (shifted_size-bit_remains)) & data[data_i]) >> (shifted_size-bit_remains);
+            printf("written remains: %u\n", buf[i]);
+
+            buf_left -= bit_remains;
+            bit_remains = 0;
+            data_i++;
         }
+
+        if (data_i >= data_size)
+        {
+            break;
+        }
+
+        // write full blocks if available
+        while (buf_left - shifted_size >= shifted_size)
+        {
+            printf("buf_left: %d\n", buf_left);
+            buf[i] |= data[data_i];
+            printf("%d -> %u\n", data_i, buf[i]);
+            buf[i] = buf[i] << shifted_size;
+            data_i++;
+
+            buf_left -= shifted_size;
+        }
+
+        // write last block
+        if (buf_left >= shifted_size)
+        {
+            buf[i] |= data[data_i];
+            printf("last block: %d -> %u\n", data_i, buf[i]);
+            buf_left -= shifted_size;
+            data_i++;
+        }
+
+        // write partial data block
+        if (buf_left > 0)
+        {
+            buf[i] = buf[i] << buf_left;
+            unsigned int new_val = data[data_i] & (0xFFFFFFFF >> (DATA_ELEM_SZ - buf_left));
+//            printf("new: %u\n", new_val);
+            buf[i] |= new_val;
+
+            bit_remains = shifted_size - buf_left;
+            printf("written partial: %d\n", buf_left);
+            printf("remains: %d\n", bit_remains);
+        }
+
+        buf_left = BUF_ELEM_SZ;
     }
 
-    /* if some bits left, write them */
-    if (bitsWritten > 0) 
-    {
-        fwrite(&buffer, 1, 1, file);
-    }
+    printf("\t=== buf_left: %d\n", buf_left);
+
+    return 0;
 }
 
-
-int write_bin(struct BinData* data, char* filename, int n_rows, int n_cols)
+int write_bin(int** data, int data_cols, int data_rows, int compression_type, int* deltas, int** signs, int** errors, char* filename)
 {
     FILE* file = fopen(filename, "wb");
-    if (!file)
+    
+    if (compression_type)
     {
-        return -1; // TODO: use actual error code constant
-    }
-
-    fwrite(&data->prefix._val, 1, 1, file); // write prefix
-                                           // (comp_type: 1, n_columns: 7)
-
-
-    // write core (moved to conditions)
-    // fwrite(data->core.n_rows_block, 4, 1, file);
-    // fwrite(data->core.delta, 4, 1, file);
-    // fwrite(data->core.shift, 1, 1, file);
-
-    /*
-        if seq compression 
-        then write values (n = cols * rows)
-    */
-    if (data->prefix._prefix.compression_type)
-    {
-        int n_values = n_rows * n_cols;
-        int shift = calculate_shift(data->values, n_values);
-
-        fwrite(&data->core.n_rows_block, 4, 1, file);
-        fwrite(&data->core.delta, 4, 1, file);
-        fwrite(&shift, 1, 1, file);
-
-        shift_and_write(data->values, n_values, shift, file);
-    }
-
-    /*
-        if col compression
-        then write {core, values (n = rows)} * cols
-    */
-    else
-    {
-        // fclose(file);
-        // exit(0);
-        int n_values = n_rows;
-
-        for (int i = 0; i < n_cols; i++)
+        int* buf = malloc(sizeof(int) * data_rows);
+        for (int i = 0; i < data_cols; i++)
         {
-            int shift = calculate_shift(data->col_values[i], n_values);
+            int shift = calculate_shift(data[i], data_cols);
+            int elem_bits_size = (sizeof(int) * 8) - shift;
+            int n_elements = (elem_bits_size / 8 + (elem_bits_size % 8 ? 1 : 0)) * data_rows;
+            
+            shift_and_compress(buf, data_rows, data[i], data_rows, shift);
 
-            fwrite(&data->core.n_rows_block, 4, 1, file);
-            fwrite(&data->core.delta, 4, 1, file);
-            fwrite(&shift, 1, 1, file);
+            // write elemets
+            for (int j = 0; j < n_elements; j++)
+            {
+                fwrite(&buf[j], sizeof(int), 1, file);
+            }
 
-            shift_and_write(data->col_values[i], n_values, shift, file);
+            fwrite(&deltas[i], sizeof(int), 1, file); // write delta
+
+            // write signs
+            int buf_signs_sz = data_rows / 32 + (data_rows % 32 ? 1 : 0);
+            int* buf_signs = malloc(sizeof(int) * buf_signs_sz);
+            shift_and_compress(buf, buf_signs_sz, signs[i], data_rows, 31);
+            
+            shift_and_compress(buf, buf_signs_sz, errors[i], data_rows, 31);
+            free(buf_signs);
         }
+
+        free(buf);
     }
-
-    // write doubles
-
-    fclose(file);
-    return 0;
 }
 

@@ -188,25 +188,44 @@ POW10 ALPM_calculatepow(CsvTable* table, int option1, int option2, int column)
     lrint() return value that might be 0 in case of an overflow.
     Next check of compression is enough to catch it. */
 
-void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int column)
+void ALPM_columntoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int** sign_array, int column)
 {
     double current_value = 0.0;
     double decompressed_value = 0.0;
  
     for (size_t i = 0; i < table->num_rows; i++)
     {
+        /* Perform ALP algorithm */
         current_value = atof(table->table[i][column - 1]);
-        out_array[i][column - 1] = lrint(current_value * F10[pow->pos] * i_F10[pow->neg]);
-
-        decompressed_value = out_array[i][column - 1] * F10[pow->neg] * i_F10[pow->pos];
-        if (fabs(decompressed_value - current_value) > MAX_ERR)
-            err_array[i][column - 1] = 1;
+        if (current_value < 0)
+        {
+            /* Make integer unsigned and write sign flag */
+            out_array[i][column - 1] = abs(lrint(current_value * F10[pow->pos] * i_F10[pow->neg]));
+            sign_array[i][column - 1] = 1;
+            /* Check for compression errors*/
+            decompressed_value = out_array[i][column - 1] * F10[pow->neg] * i_F10[pow->pos];
+            if (fabs(decompressed_value + current_value) > MAX_ERR)
+                err_array[i][column - 1] = 1;
+            else
+                err_array[i][column - 1] = 0;
+        }
         else
-            err_array[i][column - 1] = 0;
+        {
+            out_array[i][column - 1] = lrint(current_value * F10[pow->pos] * i_F10[pow->neg]);
+            sign_array[i][column - 1] = 0;
+            /* Check for compression errors*/
+            decompressed_value = out_array[i][column - 1] * F10[pow->neg] * i_F10[pow->pos];
+            if (fabs(decompressed_value - current_value) > MAX_ERR)
+                err_array[i][column - 1] = 1;
+            else
+                err_array[i][column - 1] = 0;
+        }
+
+        
     }
 }
 
-void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array)
+void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** err_array, int** sign_array)
 {
     double current_value = 0.0;
     double decompressed_value = 0.0;
@@ -216,13 +235,29 @@ void ALPM_tabletoi2_ce_se(CsvTable* table, POW10* pow, int** out_array, int** er
         for (size_t j = 0; j < table->num_fields; j++)
         {
             current_value = atof(table->table[i][j]);
-            out_array[i][j] = lrint(current_value * F10[pow->pos] * i_F10[pow->neg]);
-
-            decompressed_value = out_array[i][j] * F10[pow->neg] * i_F10[pow->pos];
-            if (fabs(decompressed_value - current_value) > MAX_ERR)
-                err_array[i][j] = 1;
+            if (current_value < 0)
+            {
+                /* Make integer unsigned and write sign flag */
+                out_array[i][j] = abs(lrint(current_value * F10[pow->pos] * i_F10[pow->neg]));
+                sign_array[i][j] = 1;
+                /* Check for compression errors*/
+                decompressed_value = out_array[i][j] * F10[pow->neg] * i_F10[pow->pos];
+                if (fabs(decompressed_value + current_value) > MAX_ERR)
+                    err_array[i][j] = 1;
+                else
+                    err_array[i][j] = 0;
+            }
             else
-                err_array[i][j] = 0;
+            {
+                out_array[i][j] = lrint(current_value * F10[pow->pos] * i_F10[pow->neg]);
+                sign_array[i][j] = 0;
+                /* Check for compression errors*/
+                decompressed_value = out_array[i][j] * F10[pow->neg] * i_F10[pow->pos];
+                if (fabs(decompressed_value - current_value) > MAX_ERR)
+                    err_array[i][j] = 1;
+                else
+                    err_array[i][j] = 0;
+            }
         }
     }
 }

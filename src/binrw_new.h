@@ -1,5 +1,8 @@
 #include "csv_table.h"
 
+int BUF_ELEM_SZ = 32;
+int DATA_ELEM_SZ = 32;
+
 struct Prefix
 {
     unsigned int compression_type: 1;

@@ -28,11 +28,13 @@ int main()
 
     /* Allocate memory for 2d arrays to store compressed integers and errors */
     int** compressed_int = (int**)malloc(num_rows * sizeof(int*));
-    int** error = (int**)malloc(num_rows * sizeof(int*));
+    char** error = (char**)malloc(num_rows * sizeof(char*));
+    char** signs = (char**)malloc(num_rows * sizeof(char*));
     for (int i = 0; i < num_rows; i++)
     {
-        error[i] = (int*)malloc(num_fields * sizeof(int));
-        compressed_int[i] = (int*)malloc(num_fields * sizeof(int));
+        error[i] = (char*)malloc(num_fields * sizeof(char));
+        compressed_int[i] = (char*)malloc(num_fields * sizeof(char));
+        signs[i] = (char*)malloc(num_fields * sizeof(char));
     }
 
     /* Calculate powers of 10 which will be used in ALP algorithm */
@@ -46,7 +48,7 @@ int main()
     for (int i = 0; i < num_fields; i++)
     {
         POW10_col[i] = ALPM_calculatepow(&table, BALANCED, ONE_COLUMN, i + 1);
-        ALPM_columntoi2_ce_se(&table, &POW10_col[i], compressed_int, error, i + 1); 
+        ALPM_columntoi2_ce_se(&table, &POW10_col[i], compressed_int, error, signs, i + 1); 
     }
     // */
 
@@ -65,6 +67,15 @@ int main()
         for (int j = 0; j < num_fields; j++)
         {
             printf("%d ", error[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\nSIGNS:\n");
+    for (int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < num_fields; j++)
+        {
+            printf("%d ", signs[i][j]);
         }
         printf("\n");
     }
