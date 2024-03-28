@@ -83,6 +83,13 @@ int main()
 
     //int delta = delta_encode_ce(&table, compressed_int, error, CONTINUOUS, NULL, 10);
 
+    // 4 bytes - table.num_rows
+    // 4 bytes - delta[i]
+    // 1 + 1 bytes - POW10_col[i]
+    // 1 byte - bitshift
+    // bitstream
+
+
     // /*
     int* deltas = (int*)malloc(sizeof(int) * num_fields);
     for (int i = 0; i < num_fields; i++)
@@ -118,7 +125,6 @@ int main()
     // */
     return EXIT_SUCCESS;
 }
-
 
 
 
